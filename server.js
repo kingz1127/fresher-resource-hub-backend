@@ -576,7 +576,9 @@ const SESSION_EXPIRY_HOURS = 24;
 
 // Enable CORS
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'], 
+  origin: ['http://localhost:5173', 
+    'http://localhost:5174',
+    'https://fresher-resource-hub.onrender.com' ], 
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
 }));
