@@ -35,22 +35,47 @@ if (distExists) {
 }
 
 
-let transporter = null; 
+// Replace your transporter setup with this:
+let transporter = null;
 
 if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-  transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    secure: false,
-  });
-  
+  try {
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      // Gmail specific settings:
+      secure: true, // Use SSL
+      port: 465, // SSL port
+      tls: {
+        rejectUnauthorized: false // Allow self-signed certificates
+      },
+      // Timeout settings for Render free tier:
+      connectionTimeout: 10000, // 10 seconds
+      greetingTimeout: 10000,
+      socketTimeout: 10000
+    });
+    
+    console.log('✅ Email transporter configured');
+    
+    // Test connection on startup
+    transporter.verify(function(error, success) {
+      if (error) {
+        console.log('❌ Email transporter verification failed:', error.message);
+      } else {
+        console.log('✅ Email transporter is ready to send messages');
+      }
+    });
+    
+  } catch (error) {
+    console.log('❌ Failed to create email transporter:', error.message);
+    transporter = null;
+  }
 } else {
   console.log('⚠️ Email not configured (missing EMAIL_USER or EMAIL_PASS)');
 }
-
 
 app.get('/api/health', (req, res) => {
   res.json({ 
