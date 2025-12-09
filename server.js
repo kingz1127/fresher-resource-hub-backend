@@ -557,24 +557,23 @@ import nodemailer from 'nodemailer';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 
-// ✅ Initialize Supabase Client (Database only, no auth)
+
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
 
-// ✅ OTP storage
-const otpStore = new Map(); // { email: { otp: '123456', expires: timestamp } }
 
-// ✅ Active sessions
-const sessions = new Map(); // { sessionId: { userId, email, expires } }
+const otpStore = new Map(); 
 
-// ✅ Configuration
+const sessions = new Map(); 
+
+
 const OTP_EXPIRY_MINUTES = 10;
 const SALT_ROUNDS = 12;
 const SESSION_EXPIRY_HOURS = 24;
 
-// Enable CORS
+
 app.use(cors({
   origin: ['http://localhost:5173', 
     'http://localhost:5174',
@@ -593,7 +592,7 @@ if (distExists) {
   console.log('✅ Serving static files from dist/');
 }
 
-// ✅ Configure email transporter
+
 let transporter = null; 
 
 if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
@@ -612,12 +611,12 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
 
 console.log('✅ Supabase connected as database');
 
-// ✅ Helper to generate session ID
+
 const generateSessionId = () => {
   return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 };
 
-// Health check endpoint
+
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -630,7 +629,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ✅ Register endpoint (Saves to Supabase database)
+
 app.post('/api/register', async (req, res) => {
   console.log('📝 Register request:', req.body?.email);
   
@@ -653,14 +652,14 @@ app.post('/api/register', async (req, res) => {
 
     const normalizedEmail = email.toLowerCase();
 
-    // Check if user already exists in Supabase
+    
     const { data: existingUser, error: checkError } = await supabase
       .from('Registered')
       .select('*')
       .eq('Email', normalizedEmail)
       .single();
 
-    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows
+    if (checkError && checkError.code !== 'PGRST116') { 
       console.error('❌ Check error:', checkError);
     }
 
@@ -671,10 +670,10 @@ app.post('/api/register', async (req, res) => {
       });
     }
 
-    // Hash password
+    
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
     
-    // Create user in Supabase database
+    
     const { data: newUser, error: insertError } = await supabase
       .from('Registered')
       .insert([
@@ -722,7 +721,7 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// ✅ Login endpoint (Authenticates against Supabase database)
+
 app.post('/api/login', async (req, res) => {
   console.log('🔐 Login request:', req.body?.email);
   
@@ -738,7 +737,7 @@ app.post('/api/login', async (req, res) => {
 
     const normalizedEmail = email.toLowerCase();
 
-    // Get user from Supabase database
+    
     const { data: user, error: fetchError } = await supabase
       .from('Registered')
       .select('*')
@@ -753,7 +752,7 @@ app.post('/api/login', async (req, res) => {
       });
     }
 
-    // Verify password
+    
     const isValid = await bcrypt.compare(password, user.Password);
     
     if (!isValid) {
@@ -763,7 +762,7 @@ app.post('/api/login', async (req, res) => {
       });
     }
 
-    // Create session
+    
     const sessionId = generateSessionId();
     const expiresAt = Date.now() + (SESSION_EXPIRY_HOURS * 60 * 60 * 1000);
     
@@ -799,7 +798,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ✅ Validate session endpoint
+
 app.post('/api/validate-session', (req, res) => {
   try {
     const { sessionId } = req.body;
@@ -820,7 +819,7 @@ app.post('/api/validate-session', (req, res) => {
       });
     }
 
-    // Check if session expired
+    
     if (Date.now() > session.expires) {
       sessions.delete(sessionId);
       return res.status(401).json({ 
@@ -850,7 +849,7 @@ app.post('/api/validate-session', (req, res) => {
   }
 });
 
-// ✅ Logout endpoint
+
 app.post('/api/logout', (req, res) => {
   try {
     const { sessionId } = req.body;
@@ -874,7 +873,7 @@ app.post('/api/logout', (req, res) => {
   }
 });
 
-// ✅ Send OTP endpoint (for password reset)
+
 app.post('/api/send-otp', async (req, res) => {
   console.log('📧 OTP request:', req.body?.email);
   
@@ -890,7 +889,7 @@ app.post('/api/send-otp', async (req, res) => {
 
     const normalizedEmail = email.toLowerCase();
 
-    // Check if user exists in Supabase
+    
     const { data: user, error: userError } = await supabase
       .from('Registered')
       .select('*')
@@ -904,16 +903,16 @@ app.post('/api/send-otp', async (req, res) => {
       });
     }
 
-    // Generate 6-digit OTP
+    
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // Store OTP with expiration
+    
     const expiresAt = Date.now() + (OTP_EXPIRY_MINUTES * 60 * 1000);
     otpStore.set(normalizedEmail, { otp, expiresAt });
     
     console.log(`✅ OTP stored for ${email}: ${otp} (expires in ${OTP_EXPIRY_MINUTES}min)`);
     
-    // Try to send email if configured
+    
     if (transporter) {
       console.log('📤 Attempting to send email to:', email);
       
@@ -972,11 +971,11 @@ app.post('/api/send-otp', async (req, res) => {
         
       } catch (emailError) {
         console.error('❌ Email failed:', emailError.message);
-        // Continue to mock mode if email fails
+        
       }
     }
     
-    // Mock mode: return OTP in response (for development)
+    
     console.log('⚠️ Running in MOCK mode - OTP in response');
     res.json({
       success: true,
@@ -997,7 +996,7 @@ app.post('/api/send-otp', async (req, res) => {
   }
 });
 
-// ✅ Verify OTP endpoint
+
 app.post('/api/verify-otp', async (req, res) => {
   console.log('🔍 OTP verification request:', req.body?.email);
   
@@ -1022,7 +1021,7 @@ app.post('/api/verify-otp', async (req, res) => {
       });
     }
 
-    // Check if OTP expired
+    
     if (Date.now() > storedData.expiresAt) {
       console.log('❌ OTP expired for:', email);
       otpStore.delete(normalizedEmail);
@@ -1032,7 +1031,7 @@ app.post('/api/verify-otp', async (req, res) => {
       });
     }
 
-    // Verify OTP
+    
     if (storedData.otp !== otp.toString()) {
       console.log('❌ Invalid OTP for:', email);
       return res.status(400).json({ 
@@ -1041,9 +1040,9 @@ app.post('/api/verify-otp', async (req, res) => {
       });
     }
 
-    // OTP verified successfully
+    
     console.log('✅ OTP verified for:', email);
-    otpStore.delete(normalizedEmail); // Remove used OTP
+    otpStore.delete(normalizedEmail); 
     
     res.json({
       success: true,
@@ -1060,7 +1059,7 @@ app.post('/api/verify-otp', async (req, res) => {
   }
 });
 
-// ✅ Reset password endpoint (Updates password in Supabase)
+
 app.post('/api/reset-password', async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
@@ -1075,7 +1074,7 @@ app.post('/api/reset-password', async (req, res) => {
     const normalizedEmail = email.toLowerCase();
     const storedData = otpStore.get(normalizedEmail);
 
-    // Verify OTP
+    
     if (!storedData || storedData.otp !== otp.toString()) {
       return res.status(400).json({ 
         success: false,
@@ -1083,7 +1082,7 @@ app.post('/api/reset-password', async (req, res) => {
       });
     }
     
-    // Check if OTP expired
+    
     if (Date.now() > storedData.expiresAt) {
       otpStore.delete(normalizedEmail);
       return res.status(400).json({ 
@@ -1092,7 +1091,7 @@ app.post('/api/reset-password', async (req, res) => {
       });
     }
 
-    // Find user in Supabase
+    
     const { data: user, error: userError } = await supabase
       .from('Registered')
       .select('*')
@@ -1106,10 +1105,10 @@ app.post('/api/reset-password', async (req, res) => {
       });
     }
 
-    // Hash new password
+    
     const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
 
-    // Update password in Supabase
+    
     const { error: updateError } = await supabase
       .from('Registered')
       .update({ Password: hashedPassword })
@@ -1124,7 +1123,7 @@ app.post('/api/reset-password', async (req, res) => {
       });
     }
 
-    // Remove OTP data
+    
     otpStore.delete(normalizedEmail);
 
     console.log('✅ Password reset for:', email);
@@ -1144,13 +1143,13 @@ app.post('/api/reset-password', async (req, res) => {
   }
 });
 
-// ✅ Cleanup expired data periodically
+
 setInterval(() => {
   const now = Date.now();
   let cleanedOTPs = 0;
   let cleanedSessions = 0;
   
-  // Clean expired OTPs
+  
   for (const [email, data] of otpStore.entries()) {
     if (now > data.expiresAt) {
       otpStore.delete(email);
@@ -1158,7 +1157,7 @@ setInterval(() => {
     }
   }
   
-  // Clean expired sessions
+  
   for (const [sessionId, session] of sessions.entries()) {
     if (now > session.expires) {
       sessions.delete(sessionId);
@@ -1169,9 +1168,8 @@ setInterval(() => {
   if (cleanedOTPs > 0 || cleanedSessions > 0) {
     console.log(`🧹 Cleaned ${cleanedOTPs} expired OTP(s) and ${cleanedSessions} expired session(s)`);
   }
-}, 60000); // Run every minute
+}, 60000); 
 
-// SPA routing
 let indexHtml = null;
 if (distExists) {
   try {
