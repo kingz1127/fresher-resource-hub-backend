@@ -748,32 +748,23 @@ let transporter = null;
 
 if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
   transporter = nodemailer.createTransport({
+    service: 'gmail',
     host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
+    port: 465,
+    secure: true, // Use SSL
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
     tls: {
-      rejectUnauthorized: false,
-      ciphers: 'SSLv3'
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 20000,
-    debug: true,
-   
+      rejectUnauthorized: true
+    }
   });
   
   // Verify connection
   transporter.verify(function(error, success) {
     if (error) {
       console.log('❌ Email verification failed:', error.message);
-      console.log('📋 Error details:', {
-        code: error.code,
-        command: error.command
-      });
     } else {
       console.log('✅ Email server is ready to send messages');
     }
