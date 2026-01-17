@@ -759,8 +759,8 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       rejectUnauthorized: false
     },
     connectionTimeout: 60000, // 30 seconds
-    greetingTimeout: 30000,
-    socketTimeout: 45000
+    greetingTimeout: 15000,
+    socketTimeout: 15000
   });
   
   // Verify connection
