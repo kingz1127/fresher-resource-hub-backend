@@ -63,7 +63,7 @@ if (process.env.SENDGRID_API_KEY) {
     sendEmail: async (toEmail, subject, htmlContent, textContent) => {
       const msg = {
         to: toEmail,
-        from: process.env.EMAIL_FROM || 'Fresher Hub <noreply@fresherhub.com>',
+        from: process.env.EMAIL_FROM || 'Fresher Hub <osunyingboadedeji1@gmail.com>',
         subject: subject,
         html: htmlContent,
         text: textContent,
