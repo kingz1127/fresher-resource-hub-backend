@@ -763,7 +763,7 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
     greetingTimeout: 10000,
     socketTimeout: 20000,
     debug: true,
-    // logger: true
+   
   });
   
   // Verify connection
