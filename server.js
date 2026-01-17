@@ -748,17 +748,19 @@ let transporter = null;
 
 if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
   transporter = nodemailer.createTransport({
-    service: 'gmail',
     host: 'smtp.gmail.com',
     port: 465,
-    secure: true, // Use SSL
+    secure: true,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
     tls: {
-      rejectUnauthorized: true
-    }
+      rejectUnauthorized: false
+    },
+    connectionTimeout: 60000, // 30 seconds
+    greetingTimeout: 30000,
+    socketTimeout: 45000
   });
   
   // Verify connection
