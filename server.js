@@ -748,33 +748,90 @@ let transporter = null;
 
 if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
   transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
+    service: 'gmail',
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
+    // These settings often work better than manual host/port config
+    secure: true,
     tls: {
-      rejectUnauthorized: false
+      rejectUnauthorized: false,
+      ciphers: 'SSLv3'
     },
-    connectionTimeout: 60000, // 30 seconds
-    greetingTimeout: 60000,
-    socketTimeout: 60000
+    // Reduced timeouts for faster failure detection
+    connectionTimeout: 10000,  // 10 seconds
+    greetingTimeout: 10000,
+    socketTimeout: 10000
   });
   
-  // Verify connection
-  transporter.verify(function(error, success) {
+  // Add connection testing
+  transporter.verify((error, success) => {
     if (error) {
-      console.log('❌ Email verification failed:', error.message);
+      console.log('❌ SMTP Connection Error:', {
+        message: error.message,
+        code: error.code,
+        command: error.command
+      });
+      
+      // Test connection with simpler method
+      testSMTPConnection();
     } else {
-      console.log('✅ Email server is ready to send messages');
+      console.log('✅ SMTP server is ready');
     }
   });
   
-  console.log('✅ Email configured with:', process.env.EMAIL_USER);
+  console.log('✅ Email configured with App Password');
 } else {
-  console.log('⚠️ Email not configured (missing EMAIL_USER or EMAIL_PASS)');
+  console.log('⚠️ Email not configured');
+}
+
+// Alternative testing function
+async function testSMTPConnection() {
+  console.log('🔧 Testing SMTP connection alternatives...');
+  
+  // Test with different configurations
+  const testConfigs = [
+    {
+      name: 'Gmail Service',
+      config: {
+        service: 'gmail',
+        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+      }
+    },
+    {
+      name: 'Manual SSL',
+      config: {
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+      }
+    },
+    {
+      name: 'TLS',
+      config: {
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        requireTLS: true,
+        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+      }
+    }
+  ];
+  
+  for (const test of testConfigs) {
+    try {
+      console.log(`Testing ${test.name}...`);
+      const testTransporter = nodemailer.createTransport(test.config);
+      await testTransporter.verify();
+      console.log(`✅ ${test.name} works!`);
+      transporter = testTransporter; // Use the working config
+      return;
+    } catch (err) {
+      console.log(`❌ ${test.name} failed: ${err.message}`);
+    }
+  }
 }
 
 console.log('✅ Supabase connected as database');
